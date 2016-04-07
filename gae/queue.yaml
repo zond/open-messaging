@@ -1,0 +1,4 @@
+queue:
+- name: updateSubscribers
+  rate: 500/s
+

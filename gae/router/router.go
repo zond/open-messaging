@@ -9,10 +9,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/zond/open-messaging/channel"
 	"github.com/zond/open-messaging/message"
+	"github.com/zond/open-messaging/subscription"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/delay"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/taskqueue"
 )
 
 const (
@@ -29,6 +32,17 @@ func preflight(w http.ResponseWriter, r *http.Request) {
 	corsHeaders(w)
 }
 
+var updateSubscribersFunc = delay.Func("github.com/zond/open-messaging/gae/router/router.updateSubscribersFunc", updateSubscribers)
+
+func updateSubscribers(c context.Context, chKey *datastore.Key) error {
+	subscriptions := []subscription.Subscription{}
+	_, err := datastore.NewQuery(subscription.Kind).Filter("ChannelKey=", chKey).GetAll(c, &subscriptions)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func post(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	payload, err := ioutil.ReadAll(r.Body)
@@ -41,8 +55,8 @@ func post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
+	chKey := datastore.NewKey(c, channel.Kind, mux.Vars(r)["channel"], 0, nil)
 	if err := datastore.RunInTransaction(c, func(c context.Context) error {
-		chKey := datastore.NewKey(c, channel.Kind, mux.Vars(r)["channel"], 0, nil)
 		ch := &channel.Channel{
 			LastMessageAt: now,
 		}
@@ -61,6 +75,15 @@ func post(w http.ResponseWriter, r *http.Request) {
 	}, &datastore.TransactionOptions{
 		XG: true,
 	}); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	task, err := updateSubscribersFunc.Task(chKey)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	if err := taskqueue.Add(c, task, "updateSubscribers"); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
