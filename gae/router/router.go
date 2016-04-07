@@ -35,25 +35,47 @@ func preflight(w http.ResponseWriter, r *http.Request) {
 var updateSubscribersFunc = delay.Func("github.com/zond/open-messaging/gae/router/router.updateSubscribersFunc", updateSubscribers)
 
 func updateSubscribers(c context.Context, chKey *datastore.Key) error {
-	subscriptions := []subscription.Subscription{}
-	_, err := datastore.NewQuery(subscription.Kind).Filter("ChannelKey=", chKey).GetAll(c, &subscriptions)
-	if err != nil {
-		return err
-	}
+	return datastore.RunInTransaction(c, func(c context.Context) error {
+		subscriptions := []subscription.Subscription{}
+		_, err := datastore.NewQuery(subscription.Kind).Filter("ChannelKey=", chKey).GetAll(c, &subscriptions)
+		if err != nil {
+			return err
+		}
+		for _, subscription := range subscriptions {
+			task, err := updateSubscriberFunc.Task(subscription.IID)
+			if err != nil {
+				return err
+			}
+			if _, err := taskqueue.Add(c, task, "updateSubscriber"); err != nil {
+				return err
+			}
+		}
+		return nil
+	}, &datastore.TransactionOptions{
+		XG: true,
+	})
+}
+
+var updateSubscriberFunc = delay.Func("github.com/zond/open-messaging/gae/router/router.updateSubscriberFunc", updateSubscriber)
+
+func updateSubscriber(c context.Context, iid string) error {
 	return nil
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
+
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
 	if len(payload) == 0 {
 		http.Error(w, "No empty messages allowed", 400)
 		return
 	}
+
 	now := time.Now()
 	chKey := datastore.NewKey(c, channel.Kind, mux.Vars(r)["channel"], 0, nil)
 	if err := datastore.RunInTransaction(c, func(c context.Context) error {
@@ -64,6 +86,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
+
 		msg := &message.Message{
 			ChannelKey: chKey,
 			CreatedAt:  now,
@@ -71,19 +94,21 @@ func post(w http.ResponseWriter, r *http.Request) {
 		}
 		msgKey := datastore.NewKey(c, message.Kind, "", 0, nil)
 		_, err = datastore.Put(c, msgKey, msg)
-		return err
+		if err != nil {
+			return err
+		}
+
+		task, err := updateSubscribersFunc.Task(chKey)
+		if err != nil {
+			return err
+		}
+		if _, err := taskqueue.Add(c, task, "updateSubscribers"); err != nil {
+			return err
+		}
+		return nil
 	}, &datastore.TransactionOptions{
 		XG: true,
 	}); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	task, err := updateSubscribersFunc.Task(chKey)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	if err := taskqueue.Add(c, task, "updateSubscribers"); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
