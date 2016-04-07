@@ -1,0 +1,8 @@
+cron:
+- description: Wipeout old messages
+  url: /wipeout/message
+  schedule: every 24 hours
+- description: Wipeout empty channels
+  url: /wipeout/channel
+  schedule: every 24 hours
+
