@@ -1,6 +1,10 @@
 queue:
-- name: updateSubscribers
+- name: gcmChannel
   rate: 500/s
-- name: updateSubscriber
+- name: gcmSubscribers
+  rate: 500/s
+- name: updateIIDs
+  rate: 500/s
+- name: removeIIDs
   rate: 500/s
 
