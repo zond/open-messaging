@@ -6,6 +6,6 @@ cron:
   url: /wipeout/channels
   schedule: every 24 hours
 - description: Wipeout old subscriptions
-  url: /wipeout/subscription
+  url: /wipeout/subscriptions
   schedule: every 24 hours
 
