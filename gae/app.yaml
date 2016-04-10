@@ -7,15 +7,19 @@ handlers:
 - url: /_ah/.*
   script: _go_app
   login: admin
+  secure: always
 - url: /wipeout/.*
   script: _go_app
   login: admin
+  secure: always
 - url: /channels/.*
   script: _go_app
   secure: always
 - url: /
   static_files: static/index.html
   upload: static/index.html
+  secure: always
 - url: /(.*)
   static_files: static/\1
   upload: static/(.*)
+  secure: always

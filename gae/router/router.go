@@ -215,6 +215,7 @@ var gcmSubscribersTask = async.NewTask("gcmSubscribers", func(c context.Context,
 })
 
 func post(w http.ResponseWriter, r *http.Request) {
+	corsHeaders(w)
 	c := appengine.NewContext(r)
 
 	payload, err := ioutil.ReadAll(r.Body)
@@ -260,6 +261,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 }
 
 func read(w http.ResponseWriter, r *http.Request) {
+	corsHeaders(w)
 	c := appengine.NewContext(r)
 	chKey := datastore.NewKey(c, channel.Kind, mux.Vars(r)["channel"], 0, nil)
 	found := []message.Message{}
@@ -329,6 +331,7 @@ func wipeoutChannels(w http.ResponseWriter, r *http.Request) {
 }
 
 func subscribe(w http.ResponseWriter, r *http.Request) {
+	corsHeaders(w)
 	c := appengine.NewContext(r)
 	sub := &subscription.Subscription{}
 	if err := json.NewDecoder(r.Body).Decode(sub); err != nil {
@@ -349,6 +352,7 @@ func subscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func unsubscribe(w http.ResponseWriter, r *http.Request) {
+	corsHeaders(w)
 	c := appengine.NewContext(r)
 	sub := &subscription.Subscription{}
 	if err := json.NewDecoder(r.Body).Decode(sub); err != nil {
@@ -368,6 +372,7 @@ func unsubscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func subscribing(w http.ResponseWriter, r *http.Request) {
+	corsHeaders(w)
 	c := appengine.NewContext(r)
 	sub := &subscription.Subscription{}
 	if err := json.NewDecoder(r.Body).Decode(sub); err != nil {
