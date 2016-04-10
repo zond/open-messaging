@@ -34,3 +34,7 @@ To unsubscribe:
 #### Demo
 
 To test the GCM delivery of notifications, try the demo page at https://open-messaging.appspot.com/.
+
+#### Wipeout
+
+Subscriptions, channels and messages older than 35 days are regularly and automatically delete.
