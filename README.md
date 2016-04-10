@@ -7,9 +7,9 @@ Open messaging on top of App Engine and GCM.
 
 #### Posting messages
 
-To post a message to {channel name} with payload `message`:
+To post a message to {channel name} with payload {message}:
 
-`curl -XPOST https://open-messaging.appspot.com/channels/{channel name} -d "message"`
+`curl -XPOST https://open-messaging.appspot.com/channels/{channel name} -d "{message}"`
 
 #### Reading messages
 
