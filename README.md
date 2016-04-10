@@ -25,11 +25,11 @@ To get all messages with creation time greater than a given time:
 
 To get notifications to {GCM InstanceID} whenever new messages are posted to {channel name}:
 
-`curl -XPOST https://open-messaging-appspot.com/channels/{channel name}/subscribe -d '{"IID":"{GCM InstanceID}"}'
+`curl -XPOST https://open-messaging-appspot.com/channels/{channel name}/subscribe -d '{"IID":"{GCM InstanceID}"}`
 
 To unsubscribe:
 
-`curl -XPOST https://open-messaging-appspot.com/channels/{channel name}/unsubscribe -d '{"IID":"{GCM InstanceID}"}'
+`curl -XPOST https://open-messaging-appspot.com/channels/{channel name}/unsubscribe -d '{"IID":"{GCM InstanceID}"}`
 
 #### Demo
 
