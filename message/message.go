@@ -11,7 +11,7 @@ const (
 )
 
 type Message struct {
-	ChannelKey *datastore.Key
+	ChannelKey *datastore.Key `json:"-"`
 	CreatedAt  time.Time
 	Payload    []byte
 }
