@@ -263,7 +263,7 @@ func read(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	chKey := datastore.NewKey(c, channel.Kind, mux.Vars(r)["channel"], 0, nil)
 	found := []message.Message{}
-	query := datastore.NewQuery(message.Kind).Filter("ChannelKey=", chKey)
+	query := datastore.NewQuery(message.Kind).Filter("ChannelKey=", chKey).Order("CreatedAt")
 	if fromParam := r.URL.Query().Get("from"); fromParam != "" {
 		from, err := time.Parse(time.RFC3339, fromParam)
 		if err != nil {
@@ -335,8 +335,9 @@ func subscribe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+	sub.Channel = mux.Vars(r)["channel"]
 	sub.Timeout = time.Now().Add(maxAge)
-	if _, err := datastore.Put(c, datastore.NewKey(c, subscription.Kind, "", 0, nil), sub); err != nil {
+	if _, err := datastore.Put(c, datastore.NewKey(c, subscription.Kind, sub.Channel+"/"+sub.IID, 0, nil), sub); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -354,6 +355,7 @@ func unsubscribe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+	sub.Channel = mux.Vars(r)["channel"]
 	keys, err := datastore.NewQuery(subscription.Kind).Filter("IID=", sub.IID).Filter("Channel=", sub.Channel).KeysOnly().GetAll(c, nil)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -365,17 +367,42 @@ func unsubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func subscribing(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	sub := &subscription.Subscription{}
+	if err := json.NewDecoder(r.Body).Decode(sub); err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	sub.Channel = mux.Vars(r)["channel"]
+	found := []subscription.Subscription{}
+	_, err := datastore.NewQuery(subscription.Kind).Filter("IID=", sub.IID).Filter("Channel=", sub.Channel).GetAll(c, &found)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(found); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
 func init() {
 	r := mux.NewRouter()
 	r.Methods("OPTIONS").HandlerFunc(preflight)
+
 	wipeout := r.PathPrefix("/wipeout").Subrouter()
 	wipeout.Path("/messages").HandlerFunc(wipeoutMessages)
 	wipeout.Path("/channels").HandlerFunc(wipeoutChannels)
 	wipeout.Path("/subscriptions").HandlerFunc(wipeoutSubscriptions)
-	channel := r.PathPrefix("/{channel}").Subrouter()
-	channel.Path("/subscribe").HandlerFunc(subscribe)
-	channel.Path("/unsubscribe").HandlerFunc(unsubscribe)
+
+	channel := r.PathPrefix("/channels/{channel}").Subrouter()
+	channel.Path("/subscribe").Methods("POST").HandlerFunc(subscribe)
+	channel.Path("/unsubscribe").Methods("POST").HandlerFunc(unsubscribe)
+	channel.Path("/subscribing").Methods("POST").HandlerFunc(subscribing)
 	channel.Methods("POST").HandlerFunc(post)
 	channel.Methods("GET").HandlerFunc(read)
+
 	http.Handle("/", r)
 }

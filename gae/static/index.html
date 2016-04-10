@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Open messaging example app</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+		<script src="main.js"></script>
+		<link rel="manifest" href="manifest.json">
+	</head>
+	<body>
+		<h1>Open messaging example app</h1>
+		<dl>
+			<dt>GCM subscribing</dt>
+			<dd id='gcm-subscribing-status'>No</dd>
+			<dt>GCM IID</dt>
+			<dd id='gcm-iid'>-</dd>
+			<dt>Open messaging subscribing</dt>
+			<dd><button id='open-messaging-toggle-subscribing'>-</button></dd>
+			<dt>Last 10 minutes of messages</dt>
+			<dd>
+			<dl id='last-messages'>
+			</dl>
+			</dd>
+		</dl>
+	</body>
+</html>
